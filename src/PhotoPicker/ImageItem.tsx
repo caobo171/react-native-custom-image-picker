@@ -1,26 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    StyleSheet,
     View,
     Text,
-    Image,
-    PermissionsAndroid,
-    FlatList,
     Dimensions,
-    RefreshControl,
-    ScrollView,
-    Button,
-    Touchable,
     TouchableOpacity,
-    TouchableWithoutFeedback,
-    TouchableHighlight
 } from 'react-native';
+
+import * as Animatable from 'react-native-animatable'
+
 import FastImage from 'react-native-fast-image'
 import { ImagePickerResponse } from '../types'
 import styled from 'styled-components/native'
 
 
-const {width, height } = Dimensions.get('window')
+const { width, height } = Dimensions.get('window')
 
 
 interface Props {
@@ -44,10 +37,12 @@ const StyledView = styled(TouchableOpacity)`
   width: 100%;
   position: relative;
 
+
 `
 const StyledImage = styled(FastImage)`
   width: ${width / 3};
   height: ${width / 3};
+  background-color: orange;
 `
 const StyledOverlay = styled(View)`
   position: absolute;
@@ -70,19 +65,15 @@ const ImageItem = React.memo((props: Props) => {
 
     return (
         <StyledView onPress={() => props.onSelect(props.image)}>
-            <React.Fragment>
-                <StyledImage source={{ uri: props.image.uri }} />
-                {
-                    props.selected && <StyledOverlay>
-                        <StyleNumberIndicator>
+            <StyledImage source={{ uri: props.image.uri }} />
+            {
+                props.selected && <StyledOverlay>
+                    <StyleNumberIndicator>
 
-                            <StyledText>{props.order}</StyledText>
-                        </StyleNumberIndicator>
-                    </StyledOverlay>
-                }
-
-            </React.Fragment>
-
+                        <StyledText>{props.order}</StyledText>
+                    </StyleNumberIndicator>
+                </StyledOverlay>
+            }
         </StyledView>
 
     )

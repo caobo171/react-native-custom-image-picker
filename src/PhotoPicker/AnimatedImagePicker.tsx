@@ -13,8 +13,11 @@ import {
     PermissionsAndroid,
     Dimensions,
     TouchableOpacity,
+    Animated,
 
 } from 'react-native';
+
+import * as Animatable from 'react-native-animatable'
 
 
 
@@ -36,15 +39,19 @@ const { width, height } = Dimensions.get('window')
 
 const PAGINATION = 15
 
-const StyledModal = styled(Modal)`
+const StyledView = styled(View)`
   margin: 0 ;
   padding: 0;
   background-color: #FFFFFF;
+  width: 100%;
+  height: ${height * 0.4}px;
 `
 
-const StyledHeaderWrapper = styled(View)`
+const StyledHeaderWrapper = styled(TouchableOpacity)`
+  width: 100%;
   flex-direction: row;
   align-items: center;
+  background-color: yellow;
 `
 
 const StyledDescription = styled(Text)`
@@ -91,11 +98,17 @@ interface PhotoPickerModalProps {
     overLimitedImageNumberHandle?: () => void
 }
 
-const PhotoPickerModal = (props: PhotoPickerModalProps) => {
+let loginHeight = new Animated.Value(250);
+
+
+
+
+
+const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
 
     const [images, setImages] = useState<ImagePickerResponse[]>([])
 
-
+    const [_, forceUpdate] = useState(1)
     const [selectItemsObject, setSelectItemsObject] = useState<{
         [key: string]: {
             image: ImagePickerResponse,
@@ -167,8 +180,6 @@ const PhotoPickerModal = (props: PhotoPickerModalProps) => {
         }
     }
 
-
-
     useEffectOnce(() => {
         (async () => {
             requestPermission()
@@ -214,21 +225,87 @@ const PhotoPickerModal = (props: PhotoPickerModalProps) => {
 
     const numberSelectedItem = Object.keys(selectItemsObject).length
 
-    return (
-        <StyledModal isVisible={props.isVisible}>
-            <StyledHeaderWrapper>
-                <TouchableOpacity onPress={props.onCancelHandle}>
-                    <StyledIconImage
-                        source={require('../assets/IconImages/icon_close.png')}
-                    />
-                </TouchableOpacity>
 
-                <StyledDescription>{'Photos'} </StyledDescription>
-            </StyledHeaderWrapper>
+    // useEffectOnce(()=>{
+
+    // })
+
+    const increaseHeightOfLogin = () => {
+        Animated.timing(loginHeight, {
+            toValue: height - 10,
+            duration: 500
+        }).start(() => {
+            loadMoreImages()
+        })
+    }
+
+    const decreaseHeightOfLogin = () => {
+        Animated.timing(loginHeight, {
+            toValue: 250,
+            duration: 500
+        }).start()
+    }
+
+    const headerHeight = loginHeight.interpolate({
+        inputRange: [250, height - 10],
+        outputRange: [30, 40]
+    })
+
+    const headerOpacity = loginHeight.interpolate({
+        inputRange: [250, height - 10],
+        outputRange: [0, 1]
+    })
+
+
+    return (
+        <Animated.View
+            style={{
+                margin: 0,
+                padding: 0,
+                width: '100%',
+                height: loginHeight
+            }}
+        >
+            <TouchableOpacity
+                onPress={() => {
+                    increaseHeightOfLogin()
+                }}>
+                <Animated.View
+                    style={{
+                        width: '100%',
+                  
+                        backgroundColor: 'yellow',
+                        height: headerHeight
+                    }}
+                >
+                    <Animated.View
+                        style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            opacity: headerOpacity
+                        }}
+                    >
+                        <TouchableOpacity onPress={()=>{
+                            props.onCancelHandle()
+                            decreaseHeightOfLogin()
+                        }
+                        }>
+                            <StyledIconImage
+                                source={require('../assets/IconImages/icon_close.png')}
+                            />
+                        </TouchableOpacity>
+
+                        <StyledDescription>{'Photos'} </StyledDescription>
+                    </Animated.View>
+
+
+                </Animated.View>
+
+
+            </TouchableOpacity>
 
             {
                 images.length > 0 && <RecyclerListView
-
                     dataProvider={new DataProvider((cell1: ImagePickerResponse, cell2: ImagePickerResponse) => {
                         return cell1.uri !== cell2.uri
                     }).cloneWithRows(images)}
@@ -251,7 +328,7 @@ const PhotoPickerModal = (props: PhotoPickerModalProps) => {
                         dim.height = Dimensions.get('window').width / 3;
                     })}
 
-                    renderAheadOffset={10}
+                    renderAheadOffset={400}
                 />
             }
 
@@ -268,9 +345,11 @@ const PhotoPickerModal = (props: PhotoPickerModalProps) => {
                     </StyledSendText>
 
                 </StyledButton>}
-        </StyledModal>
+        </Animated.View>
+        // </Animatable.View>
+
     );
 };
 
 
-export default PhotoPickerModal;
+export default AnimatedImagePicker;

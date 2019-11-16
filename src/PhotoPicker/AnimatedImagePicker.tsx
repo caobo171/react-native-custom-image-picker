@@ -14,17 +14,10 @@ import {
     Dimensions,
     TouchableOpacity,
     Animated,
-
+    PanResponder
 } from 'react-native';
 
-import * as Animatable from 'react-native-animatable'
-
-
-
 import { RecyclerListView, LayoutProvider, DataProvider } from "recyclerlistview";
-
-import Modal from 'react-native-modal'
-
 import CameraRoll from '@react-native-community/cameraroll'
 import styled from 'styled-components/native'
 import useEffectOnce from 'react-use/lib/useEffectOnce'
@@ -108,7 +101,7 @@ const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
 
     const [images, setImages] = useState<ImagePickerResponse[]>([])
 
-    const [_, forceUpdate] = useState(1)
+    const [mode, setMode] = useState<'small' | 'big'>('small')
     const [selectItemsObject, setSelectItemsObject] = useState<{
         [key: string]: {
             image: ImagePickerResponse,
@@ -225,10 +218,45 @@ const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
 
     const numberSelectedItem = Object.keys(selectItemsObject).length
 
+    let panResponder = PanResponder.create({
+        onStartShouldSetPanResponder: (evt, getstureState) => true,
+        onPanResponderMove: (evt, gestureState) => {
+            position.setValue({ x: gestureState.dx, y: gestureState.dy })
 
-    // useEffectOnce(()=>{
+            console.log(height, gestureState.dy, gestureState.y0)
+        },
 
-    // })
+        onPanResponderRelease: (evt, gestureState) => {
+            if (-gestureState.dy > 50 && mode === 'small') {
+                Animated.spring(position, {
+                    toValue: {
+                        x: 0,
+                        y: -height / 2
+                    }
+                }).start(() => {
+                    setMode('big')
+                })
+            } else if (gestureState.dy > 50 && mode === 'big') {
+                Animated.spring(position, {
+                    toValue: {
+                        x: 0,
+                        y: height / 2
+                    }
+                }).start(() => {
+                    setMode('small')
+                })
+            } else {
+                Animated.spring(position, {
+                    toValue: {
+                        x: 0,
+                        y: 0
+                    }
+                }).start()
+            }
+        }
+    })
+
+    let position = new Animated.ValueXY()
 
     const increaseHeightOfLogin = () => {
         Animated.timing(loginHeight, {
@@ -238,6 +266,8 @@ const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
             loadMoreImages()
         })
     }
+
+
 
     const decreaseHeightOfLogin = () => {
         Animated.timing(loginHeight, {
@@ -256,6 +286,21 @@ const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
         outputRange: [0, 1]
     })
 
+    let heightView: any = 250;
+    if (mode === 'small') {
+        heightView = position.y.interpolate({
+            inputRange: [-height / 2, 0],
+            outputRange: [height, 250]
+        })
+    } else {
+        heightView = position.y.interpolate({
+            inputRange: [0, height / 2],
+            outputRange: [height, 250]
+        })
+    }
+
+
+
 
     return (
         <Animated.View
@@ -263,7 +308,7 @@ const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
                 margin: 0,
                 padding: 0,
                 width: '100%',
-                height: loginHeight
+                height: heightView
             }}
         >
             <TouchableOpacity
@@ -271,12 +316,14 @@ const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
                     increaseHeightOfLogin()
                 }}>
                 <Animated.View
-                    style={{
+                    style={[{
                         width: '100%',
-                  
+
                         backgroundColor: 'yellow',
-                        height: headerHeight
-                    }}
+                        height: 40
+                    }]}
+
+                    {...panResponder.panHandlers}
                 >
                     <Animated.View
                         style={{
@@ -285,7 +332,7 @@ const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
                             opacity: headerOpacity
                         }}
                     >
-                        <TouchableOpacity onPress={()=>{
+                        <TouchableOpacity onPress={() => {
                             props.onCancelHandle()
                             decreaseHeightOfLogin()
                         }

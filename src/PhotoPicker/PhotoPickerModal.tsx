@@ -36,10 +36,10 @@ const { width, height } = Dimensions.get('window')
 
 const PAGINATION = 15
 
-const StyledModal = styled(Modal)`
+const StyledModal = styled<{ backgroundColor: string }>(Modal)`
   margin: 0 ;
   padding: 0;
-  background-color: #FFFFFF;
+  background-color: ${props => props.backgroundColor};
 `
 
 const StyledHeaderWrapper = styled(View)`
@@ -59,17 +59,17 @@ const StyledIconImage = styled(FastImage)`
 
 `
 
-const StyledSendText = styled(Text)`
+const StyledSendText = styled<{ textColor: string }>(Text)`
   letter-spacing: 2;
-  color: #ffffff;
+  color: ${props => props.textColor};
 `
 
+// background-color: #1f96ff;
 
-
-const StyledButton = styled(TouchableOpacity)`
+const StyledButton = styled<{ buttonColor: string }>(TouchableOpacity)`
   height: 40px;
   position: absolute;
-  background-color: #1f96ff;
+  background-color: ${props => props.buttonColor};
   border-radius: 20px;
   margin: auto;
   width: ${width * 80 / 100}px;
@@ -88,10 +88,15 @@ interface PhotoPickerModalProps {
     onCancelHandle: () => void;
     sendButtonTitle?: string,
     limitImageNumber?: number,
-    overLimitedImageNumberHandle?: () => void
+    overLimitedImageNumberHandle?: () => void,
+
+    backgroundColor?: string,
+    textColor?: string,
+    buttonColor?: string
+
 }
 
-const PhotoPickerModal = (props: PhotoPickerModalProps) => {
+const PhotoPickerModal = React.memo((props: PhotoPickerModalProps) => {
 
     const [images, setImages] = useState<ImagePickerResponse[]>([])
 
@@ -215,7 +220,9 @@ const PhotoPickerModal = (props: PhotoPickerModalProps) => {
     const numberSelectedItem = Object.keys(selectItemsObject).length
 
     return (
-        <StyledModal isVisible={props.isVisible}>
+        <StyledModal
+            backgroundColor={props.backgroundColor ? props.backgroundColor : '#FFFFFF'}
+            isVisible={props.isVisible}>
             <StyledHeaderWrapper>
                 <TouchableOpacity onPress={props.onCancelHandle}>
                     <StyledIconImage
@@ -223,7 +230,7 @@ const PhotoPickerModal = (props: PhotoPickerModalProps) => {
                     />
                 </TouchableOpacity>
 
-                <StyledDescription>{'Photos'} </StyledDescription>
+                <StyledDescription >{'Photos'} </StyledDescription>
             </StyledHeaderWrapper>
 
             {
@@ -236,7 +243,12 @@ const PhotoPickerModal = (props: PhotoPickerModalProps) => {
                     onScroll={loadMoreImages}
 
                     rowRenderer={(type, data: ImagePickerResponse) => {
-                        return <ImageItem image={data}
+                        return <ImageItem
+
+                            buttonColor={props.buttonColor}
+                            textColor={props.textColor}
+
+                            image={data}
                             onSelect={onSelectHandle}
                             selected={selectItemsObject[data.uri] ? true : false}
                             order={selectItemsObject[data.uri] ? selectItemsObject[data.uri].order : null}
@@ -256,13 +268,15 @@ const PhotoPickerModal = (props: PhotoPickerModalProps) => {
             }
 
             {numberSelectedItem > 0 &&
-                <StyledButton onPress={() => {
-                    props.endingPickImageHandle(Object.keys(selectItemsObject)
-                        .map(item => selectItemsObject[item].image))
+                <StyledButton
+                    buttonColor={props.buttonColor ? props.buttonColor : '#1f96ff'}
+                    onPress={() => {
+                        props.endingPickImageHandle(Object.keys(selectItemsObject)
+                            .map(item => selectItemsObject[item].image))
 
-                    reset()
-                }}>
-                    <StyledSendText>
+                        reset()
+                    }}>
+                    <StyledSendText textColor={props.textColor ? props.textColor : '#FFFFFF'}>
                         {`${props.sendButtonTitle ? props.sendButtonTitle : 'Send'}`.toUpperCase()
                             + ` ${numberSelectedItem > 1 ? numberSelectedItem : ''}`}
                     </StyledSendText>
@@ -270,7 +284,14 @@ const PhotoPickerModal = (props: PhotoPickerModalProps) => {
                 </StyledButton>}
         </StyledModal>
     );
-};
+}, (prev, next) => {
+    return prev.isVisible === next.isVisible &&
+        prev.limitImageNumber === next.limitImageNumber &&
+        prev.buttonColor === next.buttonColor &&
+        prev.backgroundColor === next.backgroundColor &&
+        prev.sendButtonTitle === next.sendButtonTitle &&
+        prev.textColor === next.textColor
+})
 
 
 export default PhotoPickerModal;

@@ -13,21 +13,23 @@ import { ImagePickerResponse } from '../types'
 import styled from 'styled-components/native'
 
 
-const { width, height } = Dimensions.get('window')
+const { width } = Dimensions.get('window')
 
 
 interface Props {
     image: ImagePickerResponse,
     onSelect: (image: ImagePickerResponse) => void;
     selected: boolean,
-    order: null | number
+    order: null | number,
+    buttonColor?: string,
+    textColor? : string
 }
 
-const StyleNumberIndicator = styled(View)`
+const StyleNumberIndicator = styled<{buttonColor: string}>(View)`
   height: 32px;
   width: 32px;
   border-radius: 16px;
-  background-color: #1f96ff;
+  background-color: ${props=> props.buttonColor};
   align-items: center;
   justify-content: center;
   opacity: 1;
@@ -42,7 +44,6 @@ const StyledView = styled(TouchableOpacity)`
 const StyledImage = styled(FastImage)`
   width: ${width / 3};
   height: ${width / 3};
-  background-color: orange;
 `
 const StyledOverlay = styled(View)`
   position: absolute;
@@ -55,8 +56,8 @@ const StyledOverlay = styled(View)`
   justify-content: center;
 `
 
-const StyledText = styled(Text)`
-  color: #ffffff;
+const StyledText = styled<{textColor: string}>(Text)`
+  color: ${props=> props.textColor};
 `
 
 const ImageItem = React.memo((props: Props) => {
@@ -68,9 +69,10 @@ const ImageItem = React.memo((props: Props) => {
             <StyledImage source={{ uri: props.image.uri }} />
             {
                 props.selected && <StyledOverlay>
-                    <StyleNumberIndicator>
+                    <StyleNumberIndicator buttonColor={ props.buttonColor? props.buttonColor : '#1f96ff'}>
 
-                        <StyledText>{props.order}</StyledText>
+                        <StyledText textColor = {props.textColor ? props.textColor : "#ffffff"}>
+                          {props.order}</StyledText>
                     </StyleNumberIndicator>
                 </StyledOverlay>
             }

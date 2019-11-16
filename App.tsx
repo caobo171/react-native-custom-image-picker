@@ -14,7 +14,7 @@ const StyledWrapper = styled.View`
 const StyledView = styled.View`
   height: 400px;
   width: 100%;
-
+  justify-content: flex-end;
 `
 const App = () => {
 
@@ -22,10 +22,17 @@ const App = () => {
   return (
     <StyledWrapper>
 
-      <StyledView>
 
+      <StyledView>
+        <Button title = {"Pick Image"} onPress = {()=> {
+          setVisible(!visible)
+        }}></Button>
       </StyledView>
-      <AnimatedImagePicker
+      {/* <AnimatedImagePicker
+        // backgroundColor="red"
+        // buttonColor= "yellow"
+        // textColor = "green"
+
         isVisible = {visible}
         onCancelHandle = {()=> {
           setVisible(false)
@@ -33,6 +40,21 @@ const App = () => {
         endingPickImageHandle = {(results)=>{
           console.log('check')
         }}
+      /> */}
+
+      <PhotoPickerModal
+              backgroundColor="red"
+        buttonColor= "yellow"
+        textColor = "green"
+
+        isVisible = {visible}
+        onCancelHandle = {()=> {
+          setVisible(false)
+        }}
+        endingPickImageHandle = {(results)=>{
+          console.log('check')
+        }}
+      
       />
     </StyledWrapper>
 

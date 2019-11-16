@@ -29,24 +29,9 @@ import ImageItem from './ImageItem';
 
 const { width, height } = Dimensions.get('window')
 
-
-
 const PAGINATION = 15
-
-const StyledView = styled(View)`
-  margin: 0 ;
-  padding: 0;
-  background-color: #FFFFFF;
-  width: 100%;
-  height: ${height * 0.4}px;
-`
-
-const StyledHeaderWrapper = styled(TouchableOpacity)`
-  width: 100%;
-  flex-direction: row;
-  align-items: center;
-  background-color: yellow;
-`
+const ANIMATION_DURATION = 200
+const ANIMATION_THRESHOLD = 120
 
 const StyledDescription = styled(Text)`
   margin-left: 8px;
@@ -60,17 +45,17 @@ const StyledIconImage = styled(FastImage)`
 
 `
 
-const StyledSendText = styled(Text)`
+const StyledSendText = styled<{ textColor: string }>(Text)`
   letter-spacing: 2;
-  color: #ffffff;
+  color: ${props => props.textColor};
 `
 
 
 
-const StyledButton = styled(TouchableOpacity)`
+const StyledButton = styled<{ buttonColor: string }>(TouchableOpacity)`
   height: 40px;
   position: absolute;
-  background-color: #1f96ff;
+  background-color: ${props => props.buttonColor};
   border-radius: 20px;
   margin: auto;
   width: ${width * 80 / 100}px;
@@ -89,11 +74,15 @@ interface PhotoPickerModalProps {
     onCancelHandle: () => void;
     sendButtonTitle?: string,
     limitImageNumber?: number,
-    overLimitedImageNumberHandle?: () => void
+    overLimitedImageNumberHandle?: () => void,
+
+    backgroundColor?: string,
+    textColor?: string,
+    buttonColor?: string
 }
 
 
-const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
+const AnimatedImagePicker = React.memo((props: PhotoPickerModalProps) => {
 
     const [images, setImages] = useState<ImagePickerResponse[]>([])
 
@@ -220,24 +209,24 @@ const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
         },
 
         onPanResponderRelease: (evt, gestureState) => {
-            if (-gestureState.dy > 120 && mode === 'small') {
+            if (-gestureState.dy > ANIMATION_THRESHOLD && mode === 'small') {
                 Animated.timing(position, {
                     toValue: -height / 2
-                    , duration: 200
+                    , duration: ANIMATION_DURATION
                 }).start(() => {
                     setMode('big')
                 })
-            } else if (gestureState.dy > 120 && mode === 'big') {
+            } else if (gestureState.dy > ANIMATION_THRESHOLD && mode === 'big') {
                 Animated.timing(position, {
                     toValue: height / 2
-                    , duration: 200
+                    , duration: ANIMATION_DURATION
                 }).start(() => {
                     setMode('small')
                 })
             } else {
                 Animated.timing(position, {
                     toValue: 0
-                    , duration: 200
+                    , duration: ANIMATION_DURATION
                 }).start()
             }
         }
@@ -296,96 +285,111 @@ const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
 
 
     return (
-        <SafeAreaView>
-            <Animated.View
-                style={{
-                    margin: 0,
-                    padding: 0,
-                    width: '100%',
-                    height: heightView
-                }}
-            >
-                {/**  Header Begin */}
-                <Animated.View
-                    style={[{
-                        width: '100%',
-                        backgroundColor: '#FFFFFF',
-                        height: headerHeight,
-                    }]}
-
-                    {...panResponder.panHandlers}
-                >
+        <React.Fragment>
+            {props.isVisible && (
+                <SafeAreaView>
                     <Animated.View
                         style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            opacity: headerOpacity
-                        }}
-                    >
-                        <TouchableOpacity onPress={() => {
-                            props.onCancelHandle()
-                            decreaseHeightView()
+                            margin: 0,
+                            padding: 0,
+                            width: '100%',
+                            height: heightView,
+                            backgroundColor: props.backgroundColor ? props.backgroundColor : '#FFFFFF',
+                        }}>
+                        {/**  Header Begin */}
+                        <Animated.View
+                            style={[{
+                                width: '100%',
+
+                                height: headerHeight,
+                            }]}
+
+                            {...panResponder.panHandlers}
+                        >
+                            <Animated.View
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    opacity: headerOpacity
+                                }}
+                            >
+                                <TouchableOpacity onPress={() => {
+                                    props.onCancelHandle()
+                                    decreaseHeightView()
+                                }
+                                }>
+                                    <StyledIconImage
+                                        source={require('../assets/IconImages/icon_close.png')}
+                                    />
+                                </TouchableOpacity>
+
+                                <StyledDescription>{'Photos'} </StyledDescription>
+                            </Animated.View>
+                        </Animated.View>
+
+                        {/**  Header End */}
+
+                        {
+                            images.length > 0 && <RecyclerListView
+                                dataProvider={new DataProvider((cell1: ImagePickerResponse, cell2: ImagePickerResponse) => {
+                                    return cell1.uri !== cell2.uri
+                                }).cloneWithRows(images)}
+
+                                onScroll={loadMoreImages}
+
+                                rowRenderer={(type, data: ImagePickerResponse) => {
+                                    return <ImageItem
+
+                                        buttonColor={props.buttonColor}
+                                        textColor={props.textColor}
+                                        image={data}
+                                        onSelect={onSelectHandle}
+                                        selected={selectItemsObject[data.uri] ? true : false}
+                                        order={selectItemsObject[data.uri] ? selectItemsObject[data.uri].order : null}
+
+                                    />
+                                }}
+
+                                layoutProvider={new LayoutProvider(index => {
+                                    return 'NORMAL'
+                                }, (type, dim) => {
+                                    dim.width = Dimensions.get('window').width / 3;
+                                    dim.height = Dimensions.get('window').width / 3;
+                                })}
+
+                                renderAheadOffset={400}
+                            />
                         }
-                        }>
-                            <StyledIconImage
-                                source={require('../assets/IconImages/icon_close.png')}
-                            />
-                        </TouchableOpacity>
 
-                        <StyledDescription>{'Photos'} </StyledDescription>
+                        {numberSelectedItem > 0 &&
+                            <StyledButton
+                                buttonColor={props.buttonColor ? props.buttonColor : '#1f96ff'}
+                                onPress={() => {
+                                    props.endingPickImageHandle(Object.keys(selectItemsObject)
+                                        .map(item => selectItemsObject[item].image))
+                                    decreaseHeightView()
+                                    reset()
+                                }}>
+                                <StyledSendText textColor={props.textColor ? props.textColor : '#FFFFFF'}>
+                                    {`${props.sendButtonTitle ? props.sendButtonTitle : 'Send'}`.toUpperCase()
+                                        + ` ${numberSelectedItem > 1 ? numberSelectedItem : ''}`}
+                                </StyledSendText>
+
+                            </StyledButton>}
                     </Animated.View>
-                </Animated.View>
-
-                {/**  Header End */}
-
-                {
-                    images.length > 0 && <RecyclerListView
-                        dataProvider={new DataProvider((cell1: ImagePickerResponse, cell2: ImagePickerResponse) => {
-                            return cell1.uri !== cell2.uri
-                        }).cloneWithRows(images)}
-
-                        onScroll={loadMoreImages}
-
-                        rowRenderer={(type, data: ImagePickerResponse) => {
-                            return <ImageItem image={data}
-                                onSelect={onSelectHandle}
-                                selected={selectItemsObject[data.uri] ? true : false}
-                                order={selectItemsObject[data.uri] ? selectItemsObject[data.uri].order : null}
-
-                            />
-                        }}
-
-                        layoutProvider={new LayoutProvider(index => {
-                            return 'NORMAL'
-                        }, (type, dim) => {
-                            dim.width = Dimensions.get('window').width / 3;
-                            dim.height = Dimensions.get('window').width / 3;
-                        })}
-
-                        renderAheadOffset={400}
-                    />
-                }
-
-                {numberSelectedItem > 0 &&
-                    <StyledButton onPress={() => {
-                        props.endingPickImageHandle(Object.keys(selectItemsObject)
-                            .map(item => selectItemsObject[item].image))
-
-                        reset()
-                    }}>
-                        <StyledSendText>
-                            {`${props.sendButtonTitle ? props.sendButtonTitle : 'Send'}`.toUpperCase()
-                                + ` ${numberSelectedItem > 1 ? numberSelectedItem : ''}`}
-                        </StyledSendText>
-
-                    </StyledButton>}
-            </Animated.View>
-        </SafeAreaView>
-
-        // </Animatable.View>
+                </SafeAreaView>
+            )}
+        </React.Fragment>
 
     );
-};
+}, ( prev, next )=> {
+    return prev.isVisible  === next.isVisible &&
+           prev.limitImageNumber === next.limitImageNumber &&
+           prev.buttonColor === next.buttonColor && 
+           prev.backgroundColor === next.backgroundColor && 
+           prev.sendButtonTitle === next.sendButtonTitle && 
+           prev.textColor === next.textColor
+} )
 
 
 export default AnimatedImagePicker;

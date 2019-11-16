@@ -19,16 +19,22 @@ const StyledView = styled.View`
 const App = () => {
 
   const [visible , setVisible ] = useState(false)
+
+  const [modalVisible , setModalVisible ] = useState(false)
   return (
     <StyledWrapper>
 
 
       <StyledView>
+        <Button title = {"Pick Image Modal"} onPress = {()=> {
+          setModalVisible(!modalVisible)
+        }}></Button>
+
         <Button title = {"Pick Image"} onPress = {()=> {
           setVisible(!visible)
         }}></Button>
       </StyledView>
-      {/* <AnimatedImagePicker
+      <AnimatedImagePicker
         // backgroundColor="red"
         // buttonColor= "yellow"
         // textColor = "green"
@@ -40,14 +46,14 @@ const App = () => {
         endingPickImageHandle = {(results)=>{
           console.log('check')
         }}
-      /> */}
+      />
 
       <PhotoPickerModal
-              backgroundColor="red"
+        backgroundColor="red"
         buttonColor= "yellow"
         textColor = "green"
 
-        isVisible = {visible}
+        isVisible = {modalVisible}
         onCancelHandle = {()=> {
           setVisible(false)
         }}

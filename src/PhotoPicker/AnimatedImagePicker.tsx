@@ -14,7 +14,8 @@ import {
     Dimensions,
     TouchableOpacity,
     Animated,
-    PanResponder
+    PanResponder,
+    SafeAreaView
 } from 'react-native';
 
 import { RecyclerListView, LayoutProvider, DataProvider } from "recyclerlistview";
@@ -91,11 +92,6 @@ interface PhotoPickerModalProps {
     overLimitedImageNumberHandle?: () => void
 }
 
-let loginHeight = new Animated.Value(250);
-
-
-
-
 
 const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
 
@@ -137,8 +133,6 @@ const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
             console.warn(err);
         }
     }
-
-
 
     const loadMoreImages = async () => {
         let res: any = null
@@ -221,106 +215,102 @@ const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
     let panResponder = PanResponder.create({
         onStartShouldSetPanResponder: (evt, getstureState) => true,
         onPanResponderMove: (evt, gestureState) => {
-            position.setValue({ x: gestureState.dx, y: gestureState.dy })
+            position.setValue(gestureState.dy)
 
-            console.log(height, gestureState.dy, gestureState.y0)
         },
 
         onPanResponderRelease: (evt, gestureState) => {
-            if (-gestureState.dy > 50 && mode === 'small') {
-                Animated.spring(position, {
-                    toValue: {
-                        x: 0,
-                        y: -height / 2
-                    }
+            if (-gestureState.dy > 120 && mode === 'small') {
+                Animated.timing(position, {
+                    toValue: -height / 2
+                    , duration: 200
                 }).start(() => {
                     setMode('big')
                 })
-            } else if (gestureState.dy > 50 && mode === 'big') {
-                Animated.spring(position, {
-                    toValue: {
-                        x: 0,
-                        y: height / 2
-                    }
+            } else if (gestureState.dy > 120 && mode === 'big') {
+                Animated.timing(position, {
+                    toValue: height / 2
+                    , duration: 200
                 }).start(() => {
                     setMode('small')
                 })
             } else {
-                Animated.spring(position, {
-                    toValue: {
-                        x: 0,
-                        y: 0
-                    }
+                Animated.timing(position, {
+                    toValue: 0
+                    , duration: 200
                 }).start()
             }
         }
     })
 
-    let position = new Animated.ValueXY()
+    let position = new Animated.Value(1)
 
-    const increaseHeightOfLogin = () => {
-        Animated.timing(loginHeight, {
-            toValue: height - 10,
-            duration: 500
-        }).start(() => {
-            loadMoreImages()
-        })
-    }
-
-
-
-    const decreaseHeightOfLogin = () => {
-        Animated.timing(loginHeight, {
-            toValue: 250,
-            duration: 500
-        }).start()
-    }
-
-    const headerHeight = loginHeight.interpolate({
-        inputRange: [250, height - 10],
-        outputRange: [30, 40]
-    })
-
-    const headerOpacity = loginHeight.interpolate({
-        inputRange: [250, height - 10],
-        outputRange: [0, 1]
-    })
 
     let heightView: any = 250;
+    let headerOpacity: any = 0;
+    let headerHeight: any = 40;
     if (mode === 'small') {
-        heightView = position.y.interpolate({
+        heightView = position.interpolate({
             inputRange: [-height / 2, 0],
             outputRange: [height, 250]
         })
+
+
+        headerOpacity = position.interpolate({
+            inputRange: [-height / 2, 0],
+            outputRange: [1, 0]
+        })
+
+        headerHeight = position.interpolate({
+            inputRange: [-height / 2, 0],
+            outputRange: [40, 15]
+        })
     } else {
-        heightView = position.y.interpolate({
+        heightView = position.interpolate({
             inputRange: [0, height / 2],
             outputRange: [height, 250]
         })
+
+
+        headerOpacity = position.interpolate({
+            inputRange: [0, height / 2],
+            outputRange: [1, 0]
+        })
+
+        headerHeight = position.interpolate({
+            inputRange: [0, height / 2],
+            outputRange: [40, 15]
+        })
     }
 
+
+    const decreaseHeightView = () => {
+        Animated.timing(position, {
+            toValue: height / 2
+            , duration: 300
+        }).start(() => {
+            setMode('small')
+        })
+    }
 
 
 
     return (
-        <Animated.View
-            style={{
-                margin: 0,
-                padding: 0,
-                width: '100%',
-                height: heightView
-            }}
-        >
-            <TouchableOpacity
-                onPress={() => {
-                    increaseHeightOfLogin()
-                }}>
+        <SafeAreaView>
+            <Animated.View
+                style={{
+                    margin: 0,
+                    padding: 0,
+                    width: '100%',
+                    height: heightView
+                }}
+            >
+                {/**  Header Begin */}
                 <Animated.View
                     style={[{
                         width: '100%',
-
-                        backgroundColor: 'yellow',
-                        height: 40
+                        backgroundColor: '#FFFFFF',
+                        height: headerHeight,
                     }]}
 
                     {...panResponder.panHandlers}
@@ -334,7 +324,7 @@ const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
                     >
                         <TouchableOpacity onPress={() => {
                             props.onCancelHandle()
-                            decreaseHeightOfLogin()
+                            decreaseHeightView()
                         }
                         }>
                             <StyledIconImage
@@ -344,55 +334,54 @@ const AnimatedImagePicker = (props: PhotoPickerModalProps) => {
 
                         <StyledDescription>{'Photos'} </StyledDescription>
                     </Animated.View>
-
-
                 </Animated.View>
 
+                {/**  Header End */}
 
-            </TouchableOpacity>
+                {
+                    images.length > 0 && <RecyclerListView
+                        dataProvider={new DataProvider((cell1: ImagePickerResponse, cell2: ImagePickerResponse) => {
+                            return cell1.uri !== cell2.uri
+                        }).cloneWithRows(images)}
 
-            {
-                images.length > 0 && <RecyclerListView
-                    dataProvider={new DataProvider((cell1: ImagePickerResponse, cell2: ImagePickerResponse) => {
-                        return cell1.uri !== cell2.uri
-                    }).cloneWithRows(images)}
+                        onScroll={loadMoreImages}
 
-                    onScroll={loadMoreImages}
+                        rowRenderer={(type, data: ImagePickerResponse) => {
+                            return <ImageItem image={data}
+                                onSelect={onSelectHandle}
+                                selected={selectItemsObject[data.uri] ? true : false}
+                                order={selectItemsObject[data.uri] ? selectItemsObject[data.uri].order : null}
 
-                    rowRenderer={(type, data: ImagePickerResponse) => {
-                        return <ImageItem image={data}
-                            onSelect={onSelectHandle}
-                            selected={selectItemsObject[data.uri] ? true : false}
-                            order={selectItemsObject[data.uri] ? selectItemsObject[data.uri].order : null}
+                            />
+                        }}
 
-                        />
-                    }}
+                        layoutProvider={new LayoutProvider(index => {
+                            return 'NORMAL'
+                        }, (type, dim) => {
+                            dim.width = Dimensions.get('window').width / 3;
+                            dim.height = Dimensions.get('window').width / 3;
+                        })}
 
-                    layoutProvider={new LayoutProvider(index => {
-                        return 'NORMAL'
-                    }, (type, dim) => {
-                        dim.width = Dimensions.get('window').width / 3;
-                        dim.height = Dimensions.get('window').width / 3;
-                    })}
+                        renderAheadOffset={400}
+                    />
+                }
 
-                    renderAheadOffset={400}
-                />
-            }
+                {numberSelectedItem > 0 &&
+                    <StyledButton onPress={() => {
+                        props.endingPickImageHandle(Object.keys(selectItemsObject)
+                            .map(item => selectItemsObject[item].image))
 
-            {numberSelectedItem > 0 &&
-                <StyledButton onPress={() => {
-                    props.endingPickImageHandle(Object.keys(selectItemsObject)
-                        .map(item => selectItemsObject[item].image))
+                        reset()
+                    }}>
+                        <StyledSendText>
+                            {`${props.sendButtonTitle ? props.sendButtonTitle : 'Send'}`.toUpperCase()
+                                + ` ${numberSelectedItem > 1 ? numberSelectedItem : ''}`}
+                        </StyledSendText>
 
-                    reset()
-                }}>
-                    <StyledSendText>
-                        {`${props.sendButtonTitle ? props.sendButtonTitle : 'Send'}`.toUpperCase()
-                            + ` ${numberSelectedItem > 1 ? numberSelectedItem : ''}`}
-                    </StyledSendText>
+                    </StyledButton>}
+            </Animated.View>
+        </SafeAreaView>
 
-                </StyledButton>}
-        </Animated.View>
         // </Animatable.View>
 
     );
